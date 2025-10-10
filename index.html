@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantitative System Dynamics</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #1EBE53;
+            --secondary: #004A2A;
+            --background-dark: #000000;
+            --text-light: #F0F0F0;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+        #webgl-canvas { 
+            position: fixed; top: 0; left: 0; 
+            outline: none; 
+        }
+        #css-renderer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to the canvas */
+        }
+        #css-renderer > div > div {
+             pointer-events: auto; /* Re-enable events for the content/form itself */
+        }
+        #ui-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--background-dark); display: flex;
+            justify-content: center; align-items: center; flex-direction: column;
+            gap: 1rem; z-index: 100; transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 48px; height: 48px; border: 4px solid var(--secondary);
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .nav-button {
+            pointer-events: auto; color: var(--text-light);
+            background-color: rgba(17, 17, 17, 0.5); border: 1px solid var(--secondary);
+            backdrop-filter: blur(5px);
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            transition: background-color 0.3s, color 0.3s;
+            cursor: pointer;
+        }
+        .nav-button:hover { background-color: var(--primary); color: var(--background-dark); }
+        .fallback { display: none; }
+        noscript .fallback { display: block; }
+
+        /* Styles for the CSS-rendered cards */
+        .card-container {
+            width: 540px; /* 4.5 scene units * 120px/unit */
+            height: 540px;
+            background-color: rgba(20, 20, 20, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid var(--primary);
+            border-radius: 24px; /* Matches RoundedBoxGeometry */
+            padding: 32px;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            overflow: hidden; /* CRITICAL FIX: This clips the backdrop-filter to the rounded corners. */
+        }
+        .focused .card-container {
+             opacity: 1;
+             transform: scale(1);
+        }
+
+        .image-placeholder {
+            background-color: rgba(0,0,0,0.5);
+            border: 2px solid var(--secondary);
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #888;
+            font-style: italic;
+            width: 100%;
+            aspect-ratio: 1 / 1; /* CRITICAL FIX: Enforces a square aspect ratio */
+        }
+
+        .card-form-container input,
+        .card-form-container textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--secondary);
+            color: var(--text-light);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        .card-form-container input:focus,
+        .card-form-container textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(30, 190, 83, 0.5);
+        }
+        .card-form-container button {
+            background-color: var(--primary);
+            color: var(--background-dark);
+            padding: 10px 15px;
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .card-form-container button:hover {
+            background-color: #F0F0F0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="webgl-canvas"></canvas>
+    <div id="css-renderer"></div>
+
+    <div id="ui-container" class="p-4 md:p-8 flex flex-col justify-end items-end">
+        <div id="nav-container" class="flex flex-col gap-3"></div>
+    </div>
+    
+    <div id="loader">
+        <div class="spinner"></div>
+        <p class="text-lg">Initializing System Dynamics...</p>
+    </div>
+
+    <main id="fallback-content" class="fallback container mx-auto p-8">
+        <h1 class="text-4xl font-bold mb-4" style="color: var(--primary);">Quantitative System Dynamics</h1>
+        <div class="space-y-8">
+             <section><h2 class="text-2xl font-semibold">🧩 Company</h2><p>Team intro, values, and mission statement.</p></section>
+             <section><h2 class="text-2xl font-semibold">⚙️ Methodology</h2><p>Overview of QSD’s software and system dynamics process.</p></section>
+             <section><h2 class="text-2xl font-semibold">🧠 Projects</h2><p>Portfolio and case studies.</p></section>
+             <section><h2 class="text-2xl font-semibold">💬 Contact / Inquire</h2><p>Contact form or inquiry information.</p></section>
+        </div>
+    </main>
+
+    <noscript><style> #webgl-canvas, #loader, #ui-container, #css-renderer { display: none; } .fallback { display: block !important; color: white; } </style></noscript>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        // --- RENDERER SETUP ---
+        const scene = new THREE.Scene();
+        const cssScene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#webgl-canvas'), antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        const cssRenderer = new CSS3DRenderer({ element: document.querySelector('#css-renderer') });
+        cssRenderer.setSize(window.innerWidth, window.innerHeight);
+
+        // --- STATE MANAGEMENT ---
+        let currentScene = 'entry';
+        let currentIndex = -1;
+        let targetPosition = new THREE.Vector3(0, 0, 10);
+        let targetLookAt = new THREE.Vector3(0, 0, 0);
+        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        const interactiveObjects = [];
+
+        // --- MATERIALS & COLORS ---
+        const primaryColor = '#1EBE53';
+        const secondaryColor = '#004A2A';
+        const textColor = '#F0F0F0';
+
+        // --- LIGHTING ---
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        keyLight.position.set(5, 5, 10);
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(new THREE.Color(primaryColor), 3.0);
+        rimLight.position.set(-10, -5, 5);
+        scene.add(rimLight);
+
+        // --- BACKGROUND STARFIELD ---
+        let starfield;
+        function createStarfield() {
+            const vertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const r = 400 + Math.random() * 600;
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.random() * Math.PI;
+                vertices.push(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.7, sizeAttenuation: true });
+            starfield = new THREE.Points(geometry, material);
+            scene.add(starfield);
+        }
+        
+        // --- SCENE 1: BRAND ENTRY ---
+        const entryGroup = new THREE.Group();
+        const fontLoader = new FontLoader();
+        fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.157.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+            const textGeometry = new TextGeometry('QSD', { font, size: 2, height: 0.2, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.02, bevelOffset: 0, bevelSegments: 5 });
+            textGeometry.center();
+            const qsdLogoMesh = new THREE.Mesh(textGeometry, new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.5 }));
+            entryGroup.add(qsdLogoMesh);
+            scene.add(entryGroup);
+            
+            createStarfield();
+            createHubScene();
+
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+        });
+
+        // --- SCENE 2: INTERACTIVE HUB (STACK) ---
+        const hubGroup = new THREE.Group();
+        hubGroup.visible = false;
+        scene.add(hubGroup);
+        const cardSpacing = 10;
+        const cardSize = { width: 4.5, height: 4.5 };
+
+        const cardData = [
+            { id: 'company', title: '🧩 Company', subtitle: 'Our Mission & Vision', details: "Discover the core principles that drive us. We are a team of dedicated architects and engineers passionate about building robust, scalable, and elegant systems that solve complex real-world problems." },
+            { id: 'methodology', title: '⚙️ Methodology', subtitle: 'The QSD Process', details: "We employ a unique blend of system dynamics and agile development. This allows us to model complex challenges, iterate quickly, and deliver solutions that are both powerful and inherently adaptable." },
+            { id: 'projects', title: '🧠 Projects', subtitle: 'Case Studies', details: "Explore a curated selection of our work. From large-scale data pipelines to bespoke web experiences, our portfolio showcases a deep commitment to excellence, innovation, and measurable impact." },
+            { id: 'contact', title: '💬 Inquire', subtitle: "Let's build the future, together.", details: "Have a project in mind? We're ready to listen.", isForm: true },
+        ];
+        
+        function createHubScene() {
+            const cardGeometry = new RoundedBoxGeometry(cardSize.width, cardSize.height, 0.1, 10, 0.2);
+            // This material is only for the WebGL object to be visible for raycasting, it's mostly transparent.
+            const webglMaterial = new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.0, // Make it fully transparent
+                roughness: 0.2,
+                metalness: 0.1
+            });
+
+            cardData.forEach((data, i) => {
+                const mesh = new THREE.Mesh(cardGeometry, webglMaterial);
+                mesh.position.set(0, 0, -i * cardSpacing);
+                mesh.userData = { ...data, index: i };
+                hubGroup.add(mesh);
+                interactiveObjects.push(mesh);
+                
+                // Create the CSS3D object for content
+                const element = document.createElement('div');
+                element.className = 'card-wrapper'; // Wrapper for focus transition
+                if (data.isForm) {
+                    element.innerHTML = `
+                        <div class="card-container flex flex-col justify-center items-center p-8 card-form-container">
+                             <h3 class="text-2xl font-bold text-center mb-2" style="color: var(--primary);">${data.subtitle}</h3>
+                             <p class="text-base text-center text-gray-300 mb-4">${data.details}</p>
+                             <input type="text" placeholder="Name" />
+                             <input type="email" placeholder="Email" />
+                             <textarea placeholder="Your Message..." rows="2"></textarea>
+                             <button>Send Inquiry</button>
+                        </div>`;
+                } else {
+                    // CRITICAL FIX: Re-architected the layout for a square placeholder.
+                    // The text content is given a fixed height, and the placeholder takes the remaining space.
+                    element.innerHTML = `
+                        <div class="card-container flex flex-col h-full">
+                            <div style="height: 40%;"> 
+                                <h2 class="text-3xl font-bold" style="color: var(--primary);">${data.title}</h2>
+                                <h3 class="text-xl font-medium text-gray-200 mt-1">${data.subtitle}</h3>
+                                <p class="text-base text-gray-300 mt-4 text-ellipsis overflow-hidden">${data.details}</p>
+                            </div>
+                            <div class="flex-grow mt-4 flex justify-center items-center">
+                                <div class="image-placeholder">
+                                    Placeholder Image
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                const cssObject = new CSS3DObject(element);
+                cssObject.position.copy(mesh.position);
+                cssObject.scale.set(0.01, 0.01, 0.01);
+                cssScene.add(cssObject);
+                mesh.userData.cssObject = cssObject;
+            });
+        }
+
+        // --- UI & NAVIGATION ---
+        function setupNavUI() {
+            const navContainer = document.getElementById('nav-container');
+            navContainer.className = 'flex flex-col gap-3 opacity-0 transition-opacity duration-500';
+            navContainer.innerHTML = `<button id="home-btn" class="nav-button" title="Home"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>`;
+            setTimeout(() => navContainer.classList.remove('opacity-0'), 1000);
+            document.getElementById('home-btn').addEventListener('click', transitionToEntry);
+        }
+
+        function transitionToHub() {
+            if (currentScene === 'hub') return;
+            currentScene = 'hub';
+            gsapLikeTween(entryGroup.position, { z: 20 }, 250, () => {
+                entryGroup.visible = false;
+                hubGroup.visible = true;
+                cssScene.visible = true;
+                hubGroup.scale.set(0.1, 0.1, 0.1);
+                gsapLikeTween(hubGroup.scale, { x: 1, y: 1, z: 1 }, 250);
+            });
+            focusOnCard(interactiveObjects[0]);
+            setupNavUI();
+        }
+
+        function transitionToEntry() {
+            if (currentScene === 'entry') return;
+            const navContainer = document.getElementById('nav-container');
+            if (navContainer) {
+                navContainer.classList.add('opacity-0');
+                setTimeout(() => navContainer.innerHTML = '', 500); 
+            }
+            gsapLikeTween(hubGroup.scale, { x: 0.1, y: 0.1, z: 0.1 }, 400, () => {
+                hubGroup.visible = false;
+                cssScene.visible = false;
+                entryGroup.visible = true;
+                gsapLikeTween(entryGroup.position, { z: 0 }, 400);
+            });
+            targetPosition.set(0, 0, 10);
+            targetLookAt.set(0, 0, 0);
+            setTimeout(() => { currentScene = 'entry'; currentIndex = -1; }, 500);
+        }
+
+        function focusOnCard(card) {
+            if (card) {
+                interactiveObjects.forEach(obj => {
+                    if (obj.userData.cssObject) obj.userData.cssObject.element.classList.remove('focused');
+                });
+                if (card.userData.cssObject) card.userData.cssObject.element.classList.add('focused');
+
+                currentIndex = card.userData.index;
+                targetPosition.set(0, 0, card.position.z + 5);
+                targetLookAt.copy(card.position);
+            } else {
+                currentIndex = -1;
+                targetPosition.set(0, 0, 10);
+                targetLookAt.set(0, 0, 0);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            cssRenderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        window.addEventListener('click', () => {
+            if (currentScene === 'entry') {
+                transitionToHub();
+            } else if (currentScene === 'hub') {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(interactiveObjects);
+                if (intersects.length > 0) {
+                    const clickedCard = intersects[0].object;
+                    if (clickedCard.userData.index === currentIndex) {
+                        const nextIndex = currentIndex + 1;
+                        if (nextIndex < cardData.length) {
+                            focusOnCard(interactiveObjects[nextIndex]);
+                        }
+                    } else {
+                        focusOnCard(clickedCard);
+                    }
+                }
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            renderer.render(scene, camera);
+            cssRenderer.render(cssScene, camera);
+
+            camera.position.lerp(targetPosition, 0.05);
+            camera.lookAt(targetLookAt);
+
+            if (starfield) starfield.rotation.y += 0.0001;
+        }
+
+        function gsapLikeTween(target, end, duration, onComplete) {
+            const start = {};
+            for(const key in end) start[key] = target[key];
+            const startTime = Date.now();
+            function update() {
+                const progress = Math.min((Date.now() - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                for (const key in end) target[key] = start[key] + (end[key] - start[key]) * ease;
+                if (progress < 1) requestAnimationFrame(update);
+                else if (onComplete) onComplete();
+            }
+            update();
+        }
+
+        animate();
+    </script>
+</body>
+</html>
