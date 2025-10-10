@@ -100,7 +100,22 @@
             color: #888;
             font-style: italic;
             width: 100%;
-            aspect-ratio: 1 / 1; /* CRITICAL FIX: Enforces a square aspect ratio */
+            height: 100%;
+            /* CRITICAL FIX: Using padding-top to enforce 16:9 aspect ratio */
+            position: relative;
+            height: 0;
+            padding-top: 56.25%; /* 9 / 16 = 0.5625 */
+        }
+
+        .image-placeholder-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .card-form-container input,
@@ -261,25 +276,24 @@
         
         function createHubScene() {
             const cardGeometry = new RoundedBoxGeometry(cardSize.width, cardSize.height, 0.1, 10, 0.2);
-            // This material is only for the WebGL object to be visible for raycasting, it's mostly transparent.
-            const webglMaterial = new THREE.MeshStandardMaterial({
+            // CRITICAL FIX: The blending mode is the key to letting the CSS blur see the background.
+            const webglMaterial = new THREE.MeshBasicMaterial({
                 color: 0x000000,
                 transparent: true,
-                opacity: 0.0, // Make it fully transparent
-                roughness: 0.2,
-                metalness: 0.1
+                opacity: 0.0,
+                blending: THREE.NormalBlending, // Using NormalBlending instead of NoBlending
+                depthWrite: false
             });
 
             cardData.forEach((data, i) => {
-                const mesh = new THREE.Mesh(cardGeometry, webglMaterial);
+                const mesh = new THREE.Mesh(cardGeometry, webglMaterial.clone());
                 mesh.position.set(0, 0, -i * cardSpacing);
                 mesh.userData = { ...data, index: i };
                 hubGroup.add(mesh);
                 interactiveObjects.push(mesh);
                 
-                // Create the CSS3D object for content
                 const element = document.createElement('div');
-                element.className = 'card-wrapper'; // Wrapper for focus transition
+                element.className = 'card-wrapper';
                 if (data.isForm) {
                     element.innerHTML = `
                         <div class="card-container flex flex-col justify-center items-center p-8 card-form-container">
@@ -291,18 +305,19 @@
                              <button>Send Inquiry</button>
                         </div>`;
                 } else {
-                    // CRITICAL FIX: Re-architected the layout for a square placeholder.
-                    // The text content is given a fixed height, and the placeholder takes the remaining space.
+                    // CRITICAL FIX: Re-architected the layout for a 16:9 rectangular image placeholder inside a square card.
                     element.innerHTML = `
                         <div class="card-container flex flex-col h-full">
-                            <div style="height: 40%;"> 
+                            <div class="flex-shrink-0" style="height: 40%;"> 
                                 <h2 class="text-3xl font-bold" style="color: var(--primary);">${data.title}</h2>
                                 <h3 class="text-xl font-medium text-gray-200 mt-1">${data.subtitle}</h3>
                                 <p class="text-base text-gray-300 mt-4 text-ellipsis overflow-hidden">${data.details}</p>
                             </div>
                             <div class="flex-grow mt-4 flex justify-center items-center">
                                 <div class="image-placeholder">
-                                    Placeholder Image
+                                    <div class="image-placeholder-content">
+                                        Placeholder Image
+                                    </div>
                                 </div>
                             </div>
                         </div>`;
@@ -341,6 +356,14 @@
 
         function transitionToEntry() {
             if (currentScene === 'entry') return;
+
+            if (currentIndex !== -1 && interactiveObjects[currentIndex]) {
+                 const currentCard = interactiveObjects[currentIndex];
+                 if(currentCard.userData.cssObject) {
+                    currentCard.userData.cssObject.element.classList.remove('focused');
+                 }
+            }
+
             const navContainer = document.getElementById('nav-container');
             if (navContainer) {
                 navContainer.classList.add('opacity-0');
