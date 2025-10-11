@@ -24,8 +24,15 @@
             color: var(--text-light);
             overflow: hidden;
         }
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1; 
+        }
         #webgl-canvas { 
             position: fixed; top: 0; left: 0; 
+            z-index: 2; 
             outline: none; 
         }
         #css-renderer {
@@ -34,14 +41,23 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Let clicks pass through to the canvas */
+            z-index: 3;
+            pointer-events: none; 
+            display: none; 
         }
-        #css-renderer > div > div {
-             pointer-events: auto; /* Re-enable events for the content/form itself */
+        #css-renderer .card-wrapper {
+             pointer-events: auto;
+             cursor: pointer;
         }
         #ui-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 10;
+        }
+        #nav-container {
+            position: absolute; /* Definitive Fix: Absolute positioning for precise control */
+            bottom: 2rem;
+            right: 2rem;
+            display: none; 
         }
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -62,28 +78,27 @@
             backdrop-filter: blur(5px);
             width: 48px; height: 48px; border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 0.3s, color 0.3s, opacity 0.5s ease;
             cursor: pointer;
         }
         .nav-button:hover { background-color: var(--primary); color: var(--background-dark); }
         .fallback { display: none; }
         noscript .fallback { display: block; }
 
-        /* Styles for the CSS-rendered cards */
         .card-container {
-            width: 540px; /* 4.5 scene units * 120px/unit */
+            width: 540px; 
             height: 540px;
             background-color: rgba(20, 20, 20, 0.2);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 2px solid var(--primary);
-            border-radius: 24px; /* Matches RoundedBoxGeometry */
+            border-radius: 24px;
             padding: 32px;
             box-sizing: border-box;
             opacity: 0;
             transform: scale(0.95);
             transition: opacity 0.4s ease, transform 0.4s ease;
-            overflow: hidden; /* CRITICAL FIX: This clips the backdrop-filter to the rounded corners. */
+            overflow: hidden; 
         }
         .focused .card-container {
              opacity: 1;
@@ -94,69 +109,47 @@
             background-color: rgba(0,0,0,0.5);
             border: 2px solid var(--secondary);
             border-radius: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #888;
-            font-style: italic;
             width: 100%;
-            height: 100%;
-            /* CRITICAL FIX: Using padding-top to enforce 16:9 aspect ratio */
             position: relative;
-            height: 0;
-            padding-top: 56.25%; /* 9 / 16 = 0.5625 */
+            padding-top: 56.25%; /* 16:9 aspect ratio */
         }
-
         .image-placeholder-content {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            color: #888; font-style: italic;
         }
 
         .card-form-container input,
-        .card-form-container textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            background-color: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--secondary);
-            color: var(--text-light);
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-        .card-form-container input:focus,
-        .card-form-container textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(30, 190, 83, 0.5);
-        }
+        .card-form-container textarea,
         .card-form-container button {
-            background-color: var(--primary);
-            color: var(--background-dark);
-            padding: 10px 15px;
-            width: 100%;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
+             pointer-events: auto;
         }
-        .card-form-container button:hover {
-            background-color: #F0F0F0;
+        .form-input {
+            background-color: rgba(0,0,0,0.4) !important;
+            border: 1px solid var(--secondary) !important;
+            color: var(--text-light) !important;
+        }
+        .form-input:focus {
+            outline: none !important;
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 2px rgba(30, 190, 83, 0.5) !important;
+        }
+        .form-button {
+            background-color: var(--primary) !important;
+            color: var(--background-dark) !important;
+        }
+        .form-button:hover {
+            background-color: var(--text-light) !important;
         }
     </style>
 </head>
 <body>
+    <canvas id="background-canvas"></canvas>
     <canvas id="webgl-canvas"></canvas>
     <div id="css-renderer"></div>
 
-    <div id="ui-container" class="p-4 md:p-8 flex flex-col justify-end items-end">
+    <div id="ui-container" class="p-0"> <!-- Removed padding from main ui-container -->
         <div id="nav-container" class="flex flex-col gap-3"></div>
     </div>
     
@@ -167,23 +160,12 @@
 
     <main id="fallback-content" class="fallback container mx-auto p-8">
         <h1 class="text-4xl font-bold mb-4" style="color: var(--primary);">Quantitative System Dynamics</h1>
-        <div class="space-y-8">
-             <section><h2 class="text-2xl font-semibold">🧩 Company</h2><p>Team intro, values, and mission statement.</p></section>
-             <section><h2 class="text-2xl font-semibold">⚙️ Methodology</h2><p>Overview of QSD’s software and system dynamics process.</p></section>
-             <section><h2 class="text-2xl font-semibold">🧠 Projects</h2><p>Portfolio and case studies.</p></section>
-             <section><h2 class="text-2xl font-semibold">💬 Contact / Inquire</h2><p>Contact form or inquiry information.</p></section>
-        </div>
+        <!-- Fallback content -->
     </main>
-
-    <noscript><style> #webgl-canvas, #loader, #ui-container, #css-renderer { display: none; } .fallback { display: block !important; color: white; } </style></noscript>
+    <noscript><style> #webgl-canvas, #loader, #ui-container, #css-renderer, #background-canvas { display: none; } .fallback { display: block !important; color: white; } </style></noscript>
 
     <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
-        }
-    }
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/" } }
     </script>
     
     <script type="module">
@@ -194,37 +176,39 @@
         import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
         // --- RENDERER SETUP ---
-        const scene = new THREE.Scene();
+        const backgroundScene = new THREE.Scene();
+        const mainScene = new THREE.Scene();
         const cssScene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#webgl-canvas'), antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        const backgroundRenderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#background-canvas'), antialias: true });
+        backgroundRenderer.setSize(window.innerWidth, window.innerHeight);
+        
+        const mainRenderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#webgl-canvas'), antialias: true, alpha: true });
+        mainRenderer.setSize(window.innerWidth, window.innerHeight);
+        
         const cssRenderer = new CSS3DRenderer({ element: document.querySelector('#css-renderer') });
         cssRenderer.setSize(window.innerWidth, window.innerHeight);
 
-        // --- STATE MANAGEMENT ---
+        // --- STATE & RESPONSIVENESS ---
         let currentScene = 'entry';
         let currentIndex = -1;
         let targetPosition = new THREE.Vector3(0, 0, 10);
         let targetLookAt = new THREE.Vector3(0, 0, 0);
-        const mouse = new THREE.Vector2();
-        const raycaster = new THREE.Raycaster();
-        const interactiveObjects = [];
+        const cardSize = { width: 4.5, height: 4.5 };
+        let baseFocusDistance = 5;
 
         // --- MATERIALS & COLORS ---
         const primaryColor = '#1EBE53';
-        const secondaryColor = '#004A2A';
-        const textColor = '#F0F0F0';
 
         // --- LIGHTING ---
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        mainScene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
         keyLight.position.set(5, 5, 10);
-        scene.add(keyLight);
+        mainScene.add(keyLight);
         const rimLight = new THREE.DirectionalLight(new THREE.Color(primaryColor), 3.0);
         rimLight.position.set(-10, -5, 5);
-        scene.add(rimLight);
+        mainScene.add(rimLight);
 
         // --- BACKGROUND STARFIELD ---
         let starfield;
@@ -240,7 +224,7 @@
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.7, sizeAttenuation: true });
             starfield = new THREE.Points(geometry, material);
-            scene.add(starfield);
+            backgroundScene.add(starfield);
         }
         
         // --- SCENE 1: BRAND ENTRY ---
@@ -251,7 +235,7 @@
             textGeometry.center();
             const qsdLogoMesh = new THREE.Mesh(textGeometry, new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.5 }));
             entryGroup.add(qsdLogoMesh);
-            scene.add(entryGroup);
+            mainScene.add(entryGroup);
             
             createStarfield();
             createHubScene();
@@ -260,12 +244,11 @@
             setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
         });
 
-        // --- SCENE 2: INTERACTIVE HUB (STACK) ---
+        // --- SCENE 2: INTERACTIVE HUB ---
         const hubGroup = new THREE.Group();
         hubGroup.visible = false;
-        scene.add(hubGroup);
+        mainScene.add(hubGroup);
         const cardSpacing = 10;
-        const cardSize = { width: 4.5, height: 4.5 };
 
         const cardData = [
             { id: 'company', title: '🧩 Company', subtitle: 'Our Mission & Vision', details: "Discover the core principles that drive us. We are a team of dedicated architects and engineers passionate about building robust, scalable, and elegant systems that solve complex real-world problems." },
@@ -276,52 +259,46 @@
         
         function createHubScene() {
             const cardGeometry = new RoundedBoxGeometry(cardSize.width, cardSize.height, 0.1, 10, 0.2);
-            // CRITICAL FIX: The blending mode is the key to letting the CSS blur see the background.
-            const webglMaterial = new THREE.MeshBasicMaterial({
-                color: 0x000000,
-                transparent: true,
-                opacity: 0.0,
-                blending: THREE.NormalBlending, // Using NormalBlending instead of NoBlending
-                depthWrite: false
-            });
+            const webglMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.0 });
 
             cardData.forEach((data, i) => {
                 const mesh = new THREE.Mesh(cardGeometry, webglMaterial.clone());
                 mesh.position.set(0, 0, -i * cardSpacing);
                 mesh.userData = { ...data, index: i };
                 hubGroup.add(mesh);
-                interactiveObjects.push(mesh);
                 
                 const element = document.createElement('div');
                 element.className = 'card-wrapper';
                 if (data.isForm) {
                     element.innerHTML = `
-                        <div class="card-container flex flex-col justify-center items-center p-8 card-form-container">
-                             <h3 class="text-2xl font-bold text-center mb-2" style="color: var(--primary);">${data.subtitle}</h3>
-                             <p class="text-base text-center text-gray-300 mb-4">${data.details}</p>
-                             <input type="text" placeholder="Name" />
-                             <input type="email" placeholder="Email" />
-                             <textarea placeholder="Your Message..." rows="2"></textarea>
-                             <button>Send Inquiry</button>
+                        <div class="card-container flex flex-col justify-center p-8 card-form-container">
+                             <div class="w-full flex flex-col gap-3 text-center">
+                                 <div>
+                                     <h3 class="text-2xl font-bold" style="color: var(--primary);">${data.subtitle}</h3>
+                                     <p class="text-base text-gray-300 mt-1">${data.details}</p>
+                                 </div>
+                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Name" /> 
+                                 <input class="form-input w-full p-2 rounded" type="email" placeholder="Email" />
+                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Business Name" /> 
+                                 <textarea class="form-input w-full p-2 rounded" placeholder="Your Message..." rows="4"></textarea> 
+                                 <button class="form-button w-full p-2 rounded font-bold">Send Inquiry</button>
+                             </div>
                         </div>`;
                 } else {
-                    // CRITICAL FIX: Re-architected the layout for a 16:9 rectangular image placeholder inside a square card.
                     element.innerHTML = `
-                        <div class="card-container flex flex-col h-full">
-                            <div class="flex-shrink-0" style="height: 40%;"> 
+                        <div class="card-container flex flex-col justify-between h-full">
+                            <div> 
                                 <h2 class="text-3xl font-bold" style="color: var(--primary);">${data.title}</h2>
                                 <h3 class="text-xl font-medium text-gray-200 mt-1">${data.subtitle}</h3>
                                 <p class="text-base text-gray-300 mt-4 text-ellipsis overflow-hidden">${data.details}</p>
                             </div>
-                            <div class="flex-grow mt-4 flex justify-center items-center">
-                                <div class="image-placeholder">
-                                    <div class="image-placeholder-content">
-                                        Placeholder Image
-                                    </div>
-                                </div>
+                            <div class="flex justify-center items-center">
+                                <div class="image-placeholder"><div class="image-placeholder-content">Placeholder Image</div></div>
                             </div>
                         </div>`;
                 }
+
+                element.addEventListener('click', () => { handleCardClick(i); });
 
                 const cssObject = new CSS3DObject(element);
                 cssObject.position.copy(mesh.position);
@@ -330,110 +307,139 @@
                 mesh.userData.cssObject = cssObject;
             });
         }
+        
+        function handleCardClick(index) {
+            if (index === currentIndex) {
+                const nextIndex = currentIndex + 1;
+                if (nextIndex < cardData.length) {
+                    focusOnCard(hubGroup.children[nextIndex]);
+                }
+            } else {
+                focusOnCard(hubGroup.children[index]);
+            }
+        }
 
         // --- UI & NAVIGATION ---
         function setupNavUI() {
             const navContainer = document.getElementById('nav-container');
-            navContainer.className = 'flex flex-col gap-3 opacity-0 transition-opacity duration-500';
-            navContainer.innerHTML = `<button id="home-btn" class="nav-button" title="Home"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>`;
-            setTimeout(() => navContainer.classList.remove('opacity-0'), 1000);
+            navContainer.innerHTML = ''; // Clear previous buttons
+            navContainer.className = 'flex flex-col gap-3';
+            navContainer.style.display = 'flex'; // Make sure it's visible
+            navContainer.innerHTML = `
+                <button id="home-btn" class="nav-button" title="Home"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
+                <button id="up-btn" class="nav-button" title="Previous"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
+                <button id="down-btn" class="nav-button" title="Next"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            `;
+            
             document.getElementById('home-btn').addEventListener('click', transitionToEntry);
+            document.getElementById('up-btn').addEventListener('click', () => navigateStack(-1));
+            document.getElementById('down-btn').addEventListener('click', () => navigateStack(1));
+        }
+
+        function navigateStack(direction) {
+            if (currentIndex === -1 && direction < 0) return;
+            let newIndex = (currentIndex === -1) ? 0 : currentIndex + direction;
+            newIndex = Math.max(0, Math.min(cardData.length - 1, newIndex));
+            focusOnCard(hubGroup.children[newIndex]);
         }
 
         function transitionToHub() {
             if (currentScene === 'hub') return;
             currentScene = 'hub';
+            document.getElementById('css-renderer').style.display = 'block';
+            setupNavUI(); // Explicitly set up UI on transition
+            
             gsapLikeTween(entryGroup.position, { z: 20 }, 250, () => {
                 entryGroup.visible = false;
                 hubGroup.visible = true;
-                cssScene.visible = true;
                 hubGroup.scale.set(0.1, 0.1, 0.1);
                 gsapLikeTween(hubGroup.scale, { x: 1, y: 1, z: 1 }, 250);
             });
-            focusOnCard(interactiveObjects[0]);
-            setupNavUI();
+            focusOnCard(hubGroup.children[0]);
         }
 
         function transitionToEntry() {
             if (currentScene === 'entry') return;
 
-            if (currentIndex !== -1 && interactiveObjects[currentIndex]) {
-                 const currentCard = interactiveObjects[currentIndex];
+            // Definitive fix for scene overlay bug
+            document.getElementById('css-renderer').style.display = 'none';
+            document.getElementById('nav-container').style.display = 'none';
+            hubGroup.visible = false; 
+
+            if (currentIndex !== -1 && hubGroup.children[currentIndex]) {
+                 const currentCard = hubGroup.children[currentIndex];
                  if(currentCard.userData.cssObject) {
                     currentCard.userData.cssObject.element.classList.remove('focused');
                  }
             }
-
-            const navContainer = document.getElementById('nav-container');
-            if (navContainer) {
-                navContainer.classList.add('opacity-0');
-                setTimeout(() => navContainer.innerHTML = '', 500); 
-            }
+            
             gsapLikeTween(hubGroup.scale, { x: 0.1, y: 0.1, z: 0.1 }, 400, () => {
-                hubGroup.visible = false;
-                cssScene.visible = false;
                 entryGroup.visible = true;
                 gsapLikeTween(entryGroup.position, { z: 0 }, 400);
             });
-            targetPosition.set(0, 0, 10);
+
+            targetPosition.set(0, 0, baseFocusDistance * 2);
             targetLookAt.set(0, 0, 0);
             setTimeout(() => { currentScene = 'entry'; currentIndex = -1; }, 500);
         }
+        
+        function onWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const aspect = width / height;
 
+            camera.aspect = aspect;
+            camera.updateProjectionMatrix();
+
+            backgroundRenderer.setSize(width, height);
+            mainRenderer.setSize(width, height);
+            cssRenderer.setSize(width, height);
+            
+            const fovInRadians = camera.fov * (Math.PI / 180);
+            const heightToFit = cardSize.height;
+            const widthToFit = cardSize.width;
+
+            const distanceForHeight = heightToFit / (2 * Math.tan(fovInRadians / 2));
+            const distanceForWidth = widthToFit / (2 * Math.tan(fovInRadians / 2) * aspect);
+            
+            baseFocusDistance = Math.max(distanceForHeight, distanceForWidth) + 1;
+
+            if(currentScene === 'hub' && currentIndex !== -1) {
+                focusOnCard(hubGroup.children[currentIndex]);
+            } else if (currentScene === 'entry') {
+                targetPosition.set(0,0, baseFocusDistance * 2);
+            }
+        }
+        window.addEventListener('resize', onWindowResize);
+        
         function focusOnCard(card) {
             if (card) {
-                interactiveObjects.forEach(obj => {
-                    if (obj.userData.cssObject) obj.userData.cssObject.element.classList.remove('focused');
+                hubGroup.children.forEach(mesh => {
+                    if (mesh.userData.cssObject) mesh.userData.cssObject.element.classList.remove('focused');
                 });
-                if (card.userData.cssObject) card.userData.cssObject.element.classList.add('focused');
+                card.userData.cssObject.element.classList.add('focused');
 
                 currentIndex = card.userData.index;
-                targetPosition.set(0, 0, card.position.z + 5);
+                targetPosition.set(0, 0, card.position.z + baseFocusDistance);
                 targetLookAt.copy(card.position);
-            } else {
-                currentIndex = -1;
-                targetPosition.set(0, 0, 10);
-                targetLookAt.set(0, 0, 0);
+            } else { 
+                 currentIndex = -1;
+                 targetPosition.set(0, 0, baseFocusDistance * 2);
+                 targetLookAt.set(0, 0, 0);
             }
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            cssRenderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        });
-        
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        });
-
-        window.addEventListener('click', () => {
-            if (currentScene === 'entry') {
+        document.getElementById('webgl-canvas').addEventListener('click', () => {
+            if (currentScene === 'entry' && entryGroup.visible) {
                 transitionToHub();
-            } else if (currentScene === 'hub') {
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(interactiveObjects);
-                if (intersects.length > 0) {
-                    const clickedCard = intersects[0].object;
-                    if (clickedCard.userData.index === currentIndex) {
-                        const nextIndex = currentIndex + 1;
-                        if (nextIndex < cardData.length) {
-                            focusOnCard(interactiveObjects[nextIndex]);
-                        }
-                    } else {
-                        focusOnCard(clickedCard);
-                    }
-                }
             }
         });
 
         function animate() {
             requestAnimationFrame(animate);
             
-            renderer.render(scene, camera);
+            backgroundRenderer.render(backgroundScene, camera);
+            mainRenderer.render(mainScene, camera);
             cssRenderer.render(cssScene, camera);
 
             camera.position.lerp(targetPosition, 0.05);
@@ -455,7 +461,8 @@
             }
             update();
         }
-
+        
+        onWindowResize();
         animate();
     </script>
 </body>
