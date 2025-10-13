@@ -216,6 +216,8 @@
         const cssRenderer = new CSS3DRenderer({ element: document.querySelector('#css-renderer') });
         cssRenderer.setSize(window.innerWidth, window.innerHeight);
 
+        const animationClock = new THREE.Clock();
+
         // --- STATE & RESPONSIVENESS ---
         let currentScene = 'entry';
         let currentIndex = -1;
@@ -223,6 +225,16 @@
         let targetLookAt = new THREE.Vector3(0, 0, 0);
         const cardSize = { width: 4.5, height: 4.5 };
         let baseFocusDistance = 5;
+
+        const entryTextConfig = {
+            qsdInitialY: 0,
+            qsdRaisedY: 1.2,
+            subtitleHiddenY: -2.2,
+            subtitleVisibleY: -0.8
+        };
+        let qsdLogoMesh;
+        let subtitleMesh;
+        let subtitleRevealed = false;
 
         // --- MATERIALS & COLORS ---
         const primaryColor = '#1EBE53';
@@ -238,9 +250,10 @@
 
         // --- BACKGROUND STARFIELD ---
         let starfield;
+        let shootingStars = [];
         function createStarfield() {
             const vertices = [];
-            for (let i = 0; i < 10000; i++) {
+            for (let i = 0; i < 20000; i++) {
                 const r = 400 + Math.random() * 600;
                 const phi = Math.random() * Math.PI * 2;
                 const theta = Math.random() * Math.PI;
@@ -248,9 +261,29 @@
             }
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.7, sizeAttenuation: true });
+            const material = new THREE.PointsMaterial({ color: 0xCCCCCC, size: 1.0, sizeAttenuation: true });
             starfield = new THREE.Points(geometry, material);
             backgroundScene.add(starfield);
+        }
+
+        function createShootingStars() {
+            for (let i = 0; i < 5; i++) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(3);
+                positions[0] = (Math.random() - 0.5) * 2000;
+                positions[1] = (Math.random() - 0.5) * 2000;
+                positions[2] = (Math.random() - 0.5) * 2000;
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const material = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 2.0, sizeAttenuation: true });
+                const star = new THREE.Points(geometry, material);
+                star.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10
+                );
+                backgroundScene.add(star);
+                shootingStars.push(star);
+            }
         }
         
         // --- SCENE 1: BRAND ENTRY ---
@@ -259,11 +292,21 @@
         fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.157.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             const textGeometry = new TextGeometry('QSD', { font, size: 2, height: 0.2, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.02, bevelOffset: 0, bevelSegments: 5 });
             textGeometry.center();
-            const qsdLogoMesh = new THREE.Mesh(textGeometry, new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.5 }));
+            qsdLogoMesh = new THREE.Mesh(textGeometry, new THREE.MeshStandardMaterial({ color: new THREE.Color(primaryColor), emissive: new THREE.Color(primaryColor).multiplyScalar(0.2), roughness: 0.5 }));
+            qsdLogoMesh.position.y = entryTextConfig.qsdInitialY;
             entryGroup.add(qsdLogoMesh);
+
+            const subtitleGeometry = new TextGeometry('Turning Complexity Into Intelligent Simplicity', { font, size: 0.5, height: 0.1, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.01, bevelOffset: 0, bevelSegments: 3 });
+            subtitleGeometry.center();
+            subtitleMesh = new THREE.Mesh(subtitleGeometry, new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5, transparent: true, opacity: 0 }));
+            subtitleMesh.position.y = entryTextConfig.subtitleHiddenY;
+            subtitleMesh.visible = false;
+            entryGroup.add(subtitleMesh);
+
             mainScene.add(entryGroup);
             
             createStarfield();
+            createShootingStars();
             createHubScene();
 
             document.getElementById('loader').style.opacity = '0';
@@ -277,9 +320,10 @@
         const cardSpacing = 10;
 
         const cardData = [
-            { id: 'company', title: 'Quantitative System Dynamics', subtitle: 'Architecting Enterprise Solutions', details: "We are a team of dedicated architects and engineers passionate about building robust, scalable, and elegant systems that solve complex real-world problems.", image: "images/team-meeting.png" },
-            { id: 'methodology', title: 'Architectural Methodology', subtitle: 'The QSD Process', details: "We employ a unique blend of system dynamics and agile development. This allows us to model complex challenges, iterate quickly, and deliver solutions that are both powerful and inherently adaptable.", image: "images/methodology.png" },
-            { id: 'services', title: 'Products and Services', subtitle: 'What We Offer', details: "From data engineering and cloud architecture to custom software development and system integration, our services are designed to meet the diverse needs of modern enterprises.", image: "images/server-room.png" },
+            { id: 'company', title: 'Quantitative System Dynamics', subtitle: 'Architecting Enterprise Solutions', details: "We are a team of dedicated architects and engineers passionate about building robust, scalable, and elegant systems that solve complex real-world problems.", image: "images/qsd-meeting.png" },
+            { id: 'methodology', title: 'Architectural Methodology', subtitle: 'Engineering Clarity from Complexity', details: "By developing solutions for enterprise challenges through a structured combination of granular research and detailed design, we ensure clarity and precision in every project.", image: "images/qsd-methodology.png" },
+            { id: 'services', title: 'Products and Services', subtitle: 'Turning Design Into Operational Reality', details: "From web experiences and internal tools to networks and software systems with data-driven actionable insights, every solution is tailored to fit the way our clients work.", image: "images/qsd-server-room.png" },
+            { id: 'impact', title: 'Systems in Action', subtitle: 'Providing Real-World Solutions', details: "Our systems provide tangible results by delivering efficiency, scalability, and innovation at a cost effective rate without compromising quality.", image: "images/qsd-impact.png" },
             { id: 'contact', title: 'Inquire', subtitle: "Let's build the future, together.", details: "Have a project in mind? We're ready to listen.", isForm: true },
         ];
         
@@ -303,11 +347,12 @@
                                      <h3 class="text-2xl font-bold" style="color: var(--primary);">${data.subtitle}</h3>
                                      <p class="text-base text-gray-300 mt-1">${data.details}</p>
                                  </div>
-                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Name" /> 
+                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Business Name" />
+                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Name" />
                                  <input class="form-input w-full p-2 rounded" type="email" placeholder="Email" />
-                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Business Name" /> 
-                                 <textarea class="form-input w-full p-2 rounded" placeholder="Your Message..." rows="4"></textarea> 
-                                 <button class="form-button w-full p-2 rounded font-bold">Send Inquiry</button>
+                                 <input class="form-input w-full p-2 rounded" type="tel" placeholder="Phone" />
+                                 <textarea class="form-input w-full p-2 rounded" placeholder="Describe your project goals or challenges..." rows="4"></textarea> 
+                                 <button class="form-button w-full p-2 rounded font-bold">Get a Quote</button>
                              </div>
                         </div>`;
                 } else {
@@ -392,6 +437,7 @@
             document.getElementById('css-renderer').style.display = 'none';
             document.getElementById('nav-container').style.display = 'none';
             hubGroup.visible = false; 
+            resetEntryText(true);
 
             if (currentIndex !== -1 && hubGroup.children[currentIndex]) {
                  const currentCard = hubGroup.children[currentIndex];
@@ -458,12 +504,18 @@
 
         document.getElementById('webgl-canvas').addEventListener('click', () => {
             if (currentScene === 'entry' && entryGroup.visible) {
-                transitionToHub();
+                if (!subtitleRevealed) {
+                    revealSubtitle();
+                } else {
+                    transitionToHub();
+                }
             }
         });
 
         function animate() {
             requestAnimationFrame(animate);
+
+            const elapsed = animationClock.getElapsedTime();
             
             backgroundRenderer.render(backgroundScene, camera);
             mainRenderer.render(mainScene, camera);
@@ -472,7 +524,43 @@
             camera.position.lerp(targetPosition, 0.05);
             camera.lookAt(targetLookAt);
 
-            if (starfield) starfield.rotation.y += 0.0001;
+            if (starfield) {
+                starfield.rotation.y += 0.0001;
+                starfield.rotation.x += 0.00005;
+                starfield.rotation.z += 0.00005;
+            }
+
+            if (qsdLogoMesh) {
+                const qsdPulse = 1 + Math.sin(elapsed * 1.1) * 0.015;
+                qsdLogoMesh.scale.set(qsdPulse, qsdPulse, qsdPulse);
+                qsdLogoMesh.rotation.y = Math.sin(elapsed * 0.2) * 0.025;
+                if (qsdLogoMesh.material && 'emissiveIntensity' in qsdLogoMesh.material) {
+                    qsdLogoMesh.material.emissiveIntensity = 0.8 + Math.sin(elapsed * 0.6) * 0.2;
+                }
+            }
+
+            if (subtitleMesh && subtitleMesh.visible) {
+                const subtitleTilt = Math.sin(elapsed * 0.9) * 0.02;
+                subtitleMesh.rotation.x = subtitleTilt;
+                const subtitlePulse = 1 + Math.sin(elapsed * 1.4 + Math.PI / 5) * 0.01;
+                subtitleMesh.scale.set(subtitlePulse, subtitlePulse, subtitlePulse);
+            }
+
+            shootingStars.forEach(star => {
+                star.position.add(star.userData.velocity);
+                if (star.position.length() > 1000) {
+                    star.position.set(
+                        (Math.random() - 0.5) * 2000,
+                        (Math.random() - 0.5) * 2000,
+                        (Math.random() - 0.5) * 2000
+                    );
+                    star.userData.velocity.set(
+                        (Math.random() - 0.5) * 10,
+                        (Math.random() - 0.5) * 10,
+                        (Math.random() - 0.5) * 10
+                    );
+                }
+            });
         }
 
         function gsapLikeTween(target, end, duration, onComplete) {
@@ -487,6 +575,47 @@
                 else if (onComplete) onComplete();
             }
             update();
+        }
+
+        function animateOpacity(mesh, start, end, duration) {
+            const startTime = Date.now();
+            function update() {
+                const progress = Math.min((Date.now() - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                mesh.material.opacity = start + (end - start) * ease;
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            update();
+        }
+
+        function revealSubtitle() {
+            if (subtitleRevealed || !subtitleMesh || !qsdLogoMesh) return;
+            subtitleRevealed = true;
+            subtitleMesh.visible = true;
+            subtitleMesh.material.opacity = 0;
+            subtitleMesh.position.y = entryTextConfig.subtitleHiddenY;
+            gsapLikeTween(qsdLogoMesh.position, { y: entryTextConfig.qsdRaisedY }, 600);
+            gsapLikeTween(subtitleMesh.position, { y: entryTextConfig.subtitleVisibleY }, 600);
+            animateOpacity(subtitleMesh, 0, 1, 800);
+        }
+
+        function resetEntryText(immediate = false) {
+            subtitleRevealed = false;
+            if (!subtitleMesh || !qsdLogoMesh) return;
+            if (immediate) {
+                qsdLogoMesh.position.y = entryTextConfig.qsdInitialY;
+                subtitleMesh.position.y = entryTextConfig.subtitleHiddenY;
+                subtitleMesh.material.opacity = 0;
+            } else {
+                gsapLikeTween(qsdLogoMesh.position, { y: entryTextConfig.qsdInitialY }, 400);
+                gsapLikeTween(subtitleMesh.position, { y: entryTextConfig.subtitleHiddenY }, 400);
+                animateOpacity(subtitleMesh, subtitleMesh.material.opacity, 0, 400);
+            }
+            qsdLogoMesh.scale.set(1, 1, 1);
+            qsdLogoMesh.rotation.set(0, 0, 0);
+            subtitleMesh.scale.set(1, 1, 1);
+            subtitleMesh.rotation.set(0, 0, 0);
+            subtitleMesh.visible = false;
         }
         
         onWindowResize();
