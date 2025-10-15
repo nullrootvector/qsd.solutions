@@ -296,7 +296,7 @@
             qsdLogoMesh.position.y = entryTextConfig.qsdInitialY;
             entryGroup.add(qsdLogoMesh);
 
-            const subtitleGeometry = new TextGeometry('Turning Complexity Into Intelligent Simplicity', { font, size: 0.5, height: 0.1, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.01, bevelOffset: 0, bevelSegments: 3 });
+            const subtitleGeometry = new TextGeometry('Strategic Solutions', { font, size: 0.5, height: 0.1, curveSegments: 12, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.01, bevelOffset: 0, bevelSegments: 3 });
             subtitleGeometry.center();
             subtitleMesh = new THREE.Mesh(subtitleGeometry, new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.5, transparent: true, opacity: 0 }));
             subtitleMesh.position.y = entryTextConfig.subtitleHiddenY;
@@ -320,10 +320,10 @@
         const cardSpacing = 10;
 
         const cardData = [
-            { id: 'company', title: 'Quantitative System Dynamics', subtitle: 'Architecting Enterprise Solutions', details: "We are a team of dedicated architects and engineers passionate about building robust, scalable, and elegant systems that solve complex real-world problems.", image: "images/qsd-meeting.png" },
-            { id: 'methodology', title: 'Architectural Methodology', subtitle: 'Engineering Clarity from Complexity', details: "By developing solutions for enterprise challenges through a structured combination of granular research and detailed design, we ensure clarity and precision in every project.", image: "images/qsd-methodology.png" },
-            { id: 'services', title: 'Products and Services', subtitle: 'Turning Design Into Operational Reality', details: "From web experiences and internal tools to networks and software systems with data-driven actionable insights, every solution is tailored to fit the way our clients work.", image: "images/qsd-server-room.png" },
-            { id: 'impact', title: 'Systems in Action', subtitle: 'Providing Real-World Solutions', details: "Our systems provide tangible results by delivering efficiency, scalability, and innovation at a cost effective rate without compromising quality.", image: "images/qsd-impact.png" },
+            { id: 'company', title: 'Quantitative System Dynamics', subtitle: 'Deploying Solutions That Drive Progress', details: "We are a team of seasoned architects and engineers from around the world developing scalable, world-class solutions that address complex information technology challenges.", image: "images/qsd-meeting.png" },
+            { id: 'methodology', title: 'Architectural Methodology', subtitle: 'Pragmatic Design Meets System Dynamics', details: "Through structured research, iterative modeling, and precise architecture, we transform complex requirements into efficient systems engineered for adaptability and performance.", image: "images/qsd-methodology.png" },
+            { id: 'services', title: 'Products and Services', subtitle: 'Transforming Ideas Into Integrated Systems', details: "From web experiences and internal tools to networks and software systems with data-driven actionable insights, every solution is tailored to fit the way our clients work.", image: "images/qsd-server-room.png" },
+            { id: 'impact', title: 'Systems in Action', subtitle: 'From Vision to Verified Performance', details: "We turn architecture into outcomes, delivering efficient, scalable, and innovative systems that enhance operations, improve reliability, and achieve measurable success.", image: "images/qsd-impact.png" },
             { id: 'contact', title: 'Inquire', subtitle: "Let's build the future, together.", details: "Have a project in mind? We're ready to listen.", isForm: true },
         ];
         
