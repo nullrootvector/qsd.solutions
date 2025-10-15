@@ -118,6 +118,21 @@
             transition: opacity 0.4s ease, transform 0.4s ease;
             overflow: hidden; 
         }
+
+        @media (max-width: 768px) {
+            .card-container {
+                width: min(440px, calc(100vw - 64px));
+                height: auto;
+                padding: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card-container {
+                width: calc(100vw - 40px);
+                padding: 20px;
+            }
+        }
         .focused .card-container {
              opacity: 1;
              transform: scale(1);
