@@ -38,8 +38,8 @@ func main() {
 		http.ServeFile(w, r, "index.html")
 	})
 	http.HandleFunc("/submit", handleSubmit(db))
-	log.Println("Starting server on :8443")
-	log.Fatal(http.ListenAndServeTLS(":8443", "certs/cert.pem", "certs/key.pem", nil))
+	log.Println("Starting server on :443")
+	log.Fatal(http.ListenAndServeTLS(":443", "certs/cert.pem", "certs/key.pem", nil))
 }
 
 func initDB() (*sql.DB, error) {
