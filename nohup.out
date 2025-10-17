@@ -1,0 +1,18 @@
+2025/10/15 16:42:21 Starting server on :8080
+2025/10/15 16:43:37 Starting server on :8080
+2025/10/15 16:43:45 Received submission: name='', email='', message=''
+2025/10/15 16:46:50 Starting server on :8080
+2025/10/16 21:58:56 Starting server on :8080
+2025/10/16 22:05:06 Starting server on :8080
+2025/10/16 22:11:07 Starting server on :8080
+2025/10/16 22:14:22 Starting server on :8080
+2025/10/16 22:19:05 Starting server on :8080
+2025/10/16 22:19:10 Content-Type: application/x-www-form-urlencoded
+2025/10/16 22:19:48 Content-Type: application/x-www-form-urlencoded
+2025/10/16 22:21:38 Starting server on :8080
+2025/10/16 22:29:00 Starting server on :8443
+2025/10/16 22:29:08 http: TLS handshake error from [::1]:57476: remote error: tls: unknown certificate
+2025/10/16 22:29:08 http: TLS handshake error from [::1]:57478: remote error: tls: unknown certificate
+2025/10/16 22:29:11 http: TLS handshake error from [::1]:59308: remote error: tls: unknown certificate
+2025/10/16 22:29:11 http: TLS handshake error from [::1]:59310: remote error: tls: unknown certificate
+2025/10/16 22:29:11 http: TLS handshake error from [::1]:59322: remote error: tls: unknown certificate

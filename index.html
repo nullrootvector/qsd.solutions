@@ -3,7 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantitative System Dynamics</title>
+    <title>QSD | Strategic Solutions for Enterprise Systems</title>
+    <meta name="description" content="QSD (Quantitative System Dynamics) delivers strategic, world-class solutions for complex information technology challenges through pragmatic design and precise architecture.">
+    <link rel="canonical" href="https://www.qsd.solutions">
+    <meta name="author" content="Quantitative System Dynamics">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="QSD: Strategic Solutions">
+    <meta property="og:description" content="We transform complex IT requirements into efficient, scalable, and secure systems engineered for adaptability and peak performance.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.qsd.solutions">
+    <meta property="og:site_name" content="Quantitative System Dynamics">
+    <meta property="og:image" content="https://www.qsd.solutions/images/qsd-social-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="en_US">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QSD: Strategic Solutions">
+    <meta name="twitter:description" content="We transform complex IT requirements into efficient, scalable, and secure systems engineered for adaptability and peak performance.">
+    <meta name="twitter:image" content="https://www.qsd.solutions/images/qsd-social-preview.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -357,18 +375,18 @@
                 if (data.isForm) {
                     element.innerHTML = `
                         <div class="card-container flex flex-col justify-center p-8 card-form-container">
-                             <div class="w-full flex flex-col gap-3 text-center">
+                             <form action="/submit" method="POST" class="w-full flex flex-col gap-3 text-center">
                                  <div>
                                      <h3 class="text-2xl font-bold" style="color: var(--primary);">${data.subtitle}</h3>
                                      <p class="text-base text-gray-300 mt-1">${data.details}</p>
                                  </div>
-                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Business Name" />
-                                 <input class="form-input w-full p-2 rounded" type="text" placeholder="Name" />
-                                 <input class="form-input w-full p-2 rounded" type="email" placeholder="Email" />
-                                 <input class="form-input w-full p-2 rounded" type="tel" placeholder="Phone" />
-                                 <textarea class="form-input w-full p-2 rounded" placeholder="Describe your project goals or challenges..." rows="4"></textarea> 
-                                 <button class="form-button w-full p-2 rounded font-bold">Get a Quote</button>
-                             </div>
+                                 <input class="form-input w-full p-2 rounded" type="text" name="business_name" placeholder="Business Name" />
+                                 <input class="form-input w-full p-2 rounded" type="text" name="name" placeholder="Name" />
+                                 <input class="form-input w-full p-2 rounded" type="email" name="email" placeholder="Email" />
+                                 <input class="form-input w-full p-2 rounded" type="tel" name="phone" placeholder="Phone" />
+                                 <textarea class="form-input w-full p-2 rounded" name="message" placeholder="Describe your project goals or challenges..." rows="4"></textarea> 
+                                 <button type="submit" class="form-button w-full p-2 rounded font-bold">Get a Quote</button>
+                             </form>
                         </div>`;
                 } else {
                     element.innerHTML = `
